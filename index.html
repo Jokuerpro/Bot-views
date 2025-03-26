@@ -5,125 +5,127 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مشغل فيديوهات يوتيوب الذكي</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; direction: rtl; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px gray; margin-top: 20px; }
-        input, textarea { width: calc(100% - 20px); padding: 8px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 8px 16px; border: none; border-radius: 5px; background-color: #28a745; color: white; cursor: pointer; font-size: 14px; }
-        button:hover { background-color: #218838; }
-        .video-count { font-size: 18px; margin: 10px 0; color: #333; font-weight: bold; }
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; padding: 10px; justify-content: center; }
-        .video-box { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
-        iframe { width: 100%; border-radius: 8px; }
-        .countdown { position: absolute; bottom: 5px; left: 10px; background: rgba(0, 0, 0, 0.7); color: white; padding: 3px 7px; font-size: 12px; border-radius: 5px; }
-        @media (max-width: 600px) { 
-            .video-grid { grid-template-columns: 1fr; } 
-            button { font-size: 12px; padding: 6px 12px; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+        }
+        .video-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .video-container {
+            margin: 10px;
+            position: relative;
+            width: 300px;
+            height: 170px;
+            background: black;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🎥 مشغل فيديوهات يوتيوب الذكي</h2>
+        <input type="text" id="videoInput" placeholder="أدخل روابط الفيديوهات (مفصولة بفاصلة)">
+        <button onclick="addVideos()">إضافة الفيديوهات ➕</button>
+        <button onclick="playAllVideos()">تشغيل جميع الفيديوهات ▶</button>
+        <p>عدد الفيديوهات: <span id="videoCount">0</span></p>
+    </div>
+
+    <div class="video-grid" id="videoList"></div>
+
     <script>
-        let videoList = [];
-        let players = {};
+        let videoIds = [];
+        let players = [];
+
+        function addVideos() {
+            let input = document.getElementById("videoInput").value;
+            let urls = input.split(",");
+            urls.forEach(url => {
+                let videoId = extractVideoId(url.trim());
+                if (videoId && !videoIds.includes(videoId)) {
+                    videoIds.push(videoId);
+                }
+            });
+            updateVideoCount();
+            displayVideos();
+        }
 
         function extractVideoId(url) {
-            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-            const match = url.match(regex);
+            let match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*v%3D))([\w-]{11})/);
             return match ? match[1] : null;
         }
 
-        function addVideos() {
-            const urls = document.getElementById("videoUrls").value.trim().split("\n");
-            let addedCount = 0;
-
-            urls.forEach(url => {
-                const videoId = extractVideoId(url.trim());
-                if (videoId) {
-                    videoList.push(videoId);
-                    addedCount++;
-                }
-            });
-
-            if (addedCount > 0) {
-                document.getElementById("videoCount").innerText = `📺 عدد الفيديوهات: ${videoList.length}`;
-                document.getElementById("videoUrls").value = "";
-            } else {
-                alert("❌ لم يتم العثور على أي روابط صالحة!");
-            }
+        function updateVideoCount() {
+            document.getElementById("videoCount").innerText = videoIds.length;
         }
 
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
+        function displayVideos() {
+            let videoList = document.getElementById("videoList");
+            videoList.innerHTML = "";
+            videoIds.forEach((id, index) => {
+                let videoContainer = document.createElement("div");
+                videoContainer.classList.add("video-container");
+                videoContainer.innerHTML = `<iframe id="player${index}" src="https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=1" allow="autoplay"></iframe>`;
+                videoList.appendChild(videoContainer);
+            });
         }
 
         function playAllVideos() {
-            if (videoList.length === 0) {
-                alert("⚠️ لا توجد فيديوهات في القائمة!");
-                return;
-            }
-
-            shuffleArray(videoList);
-            const videoContainer = document.getElementById("videoContainer");
-            videoContainer.innerHTML = ""; 
-            players = {};
-
-            videoList.forEach((videoId, index) => {
-                setTimeout(() => {
-                    const videoBox = document.createElement("div");
-                    videoBox.className = "video-box";
-
-                    const iframe = document.createElement("iframe");
-                    iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1`;
-                    iframe.frameBorder = "0";
-                    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-                    iframe.allowFullscreen = true;
-                    iframe.setAttribute("data-video-id", videoId);
-
-                    const countdown = document.createElement("div");
-                    countdown.className = "countdown";
-                    countdown.innerText = "⌛ جاري التحميل...";
-
-                    videoBox.appendChild(iframe);
-                    videoBox.appendChild(countdown);
-                    videoContainer.appendChild(videoBox);
-
-                    let randomWatchTime = Math.floor(Math.random() * (90 - 30 + 1)) + 30;
-
-                    setTimeout(() => {
-                        changeVideoSettings(iframe, countdown);
-                        restartVideo(iframe, countdown);
-                    }, randomWatchTime * 1000);
-                }, index * 2000); // تأخير تشغيل كل فيديو بشكل عشوائي
+            players = [];
+            videoIds.forEach((id, index) => {
+                let iframe = document.getElementById(`player${index}`);
+                let player = new YT.Player(iframe, {
+                    events: {
+                        "onStateChange": onPlayerStateChange
+                    }
+                });
+                players.push(player);
             });
-
-            setTimeout(() => {
-                playAllVideos();
-            }, Math.max(...videoList.map(() => Math.floor(Math.random() * (90 - 30 + 1)) + 30)) * 1000);
         }
 
-        function changeVideoSettings(iframe, countdown) {
-            let qualities = ["small", "medium", "large", "hd720"];
-            let randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
-            countdown.innerText = `📺 تغيير الجودة إلى: ${randomQuality}`;
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                restartRandomVideo();
+            }
         }
 
-        function restartVideo(iframe, countdown) {
-            const videoId = iframe.getAttribute("data-video-id");
-            let randomSeek = Math.floor(Math.random() * 10); // تقديم الفيديو بمدة عشوائية
-            iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&start=${randomSeek}`;
-            countdown.innerText = "🔄 إعادة التشغيل...";
+        function restartRandomVideo() {
+            if (players.length > 0) {
+                let randomIndex = Math.floor(Math.random() * players.length);
+                players[randomIndex].seekTo(0);
+                players[randomIndex].playVideo();
+            }
         }
+
+        function onYouTubeIframeAPIReady() {
+            console.log("YouTube API Loaded");
+        }
+
+        let script = document.createElement("script");
+        script.src = "https://www.youtube.com/iframe_api";
+        document.body.appendChild(script);
     </script>
-</head>
-<body>
-    <div class="container">
-        <h1>🎥 مشغل فيديوهات يوتيوب الذكي</h1>
-        <textarea id="videoUrls" placeholder="📌 أدخل عدة روابط فيديوهات يوتيوب، كل رابط في سطر جديد"></textarea>
-        <button onclick="addVideos()">➕ إضافة الفيديوهات</button>
-        <button onclick="playAllVideos()">▶️ تشغيل جميع الفيديوهات</button>
-        <p class="video-count" id="videoCount">📺 عدد الفيديوهات: 0</p>
-    </div>
-    <div id="videoContainer" class="video-grid"></div>
+
 </body>
 </html>
