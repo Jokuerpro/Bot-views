@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل فيديوهات يوتيوب الاحترافي</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; direction: rtl; background-color: #f4f4f4; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px gray; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; background-color: #28a745; color: white; cursor: pointer; margin: 5px; }
+        button:hover { background-color: #218838; }
+        ul { list-style: none; padding: 0; }
+        li { background: #eee; padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .video-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .video-box { position: relative; width: 320px; }
+        iframe { width: 100%; border-radius: 5px; }
+        .countdown { position: absolute; bottom: 5px; left: 10px; background: rgba(0, 0, 0, 0.7); color: white; padding: 3px 7px; font-size: 14px; border-radius: 5px; }
+    </style>
+    <script>
+        let videoList = [];
+        let players = {};
+        let minDuration = Infinity;
+        let videoEndTimes = {};
+        let countdownTimers = {};
+
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        function addVideos() {
+            const urls = document.getElementById("videoUrls").value.trim().split("\n");
+            let addedCount = 0;
+
+            urls.forEach(url => {
+                const videoId = extractVideoId(url.trim());
+                if (videoId) {
+                    videoList.push({ id: `video_${videoList.length}`, videoId });
+                    addedCount++;
+                }
+            });
+
+            if (addedCount > 0) {
+                updateVideoListDisplay();
+                document.getElementById("videoUrls").value = "";
+            } else {
+                alert("❌ لم يتم العثور على أي روابط صالحة!");
+            }
+        }
+
+        function updateVideoListDisplay() {
+            const listContainer = document.getElementById("videoList");
+            listContainer.innerHTML = "";
+            videoList.forEach((video, index) => {
+                const listItem = document.createElement("li");
+                listItem.innerHTML = `🎬 فيديو ${index + 1}: <span>${video.videoId}</span>`;
+                listContainer.appendChild(listItem);
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function playAllVideos() {
+            if (videoList.length === 0) {
+                alert("⚠️ لا توجد فيديوهات في القائمة!");
+                return;
+            }
+
+            shuffleArray(videoList);
+            const videoContainer = document.getElementById("videoContainer");
+            videoContainer.innerHTML = ""; 
+            players = {};
+            minDuration = Infinity;
+            videoEndTimes = {};
+
+            videoList.forEach((video, index) => {
+                const videoBox = document.createElement("div");
+                videoBox.className = "video-box";
+
+                const iframe = document.createElement("iframe");
+                iframe.width = "320";
+                iframe.height = "180";
+                iframe.src = `https://www.youtube.com/embed/${video.videoId}?enablejsapi=1&autoplay=1&mute=1`;
+                iframe.frameBorder = "0";
+                iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                iframe.allowFullscreen = true;
+                iframe.id = video.id;
+
+                const countdown = document.createElement("div");
+                countdown.className = "countdown";
+                countdown.id = `countdown_${video.id}`;
+                countdown.innerText = "⌛ جاري التحميل...";
+
+                videoBox.appendChild(iframe);
+                videoBox.appendChild(countdown);
+                videoContainer.appendChild(videoBox);
+
+                setTimeout(() => {
+                    players[video.id] = new YT.Player(iframe, {
+                        events: {
+                            'onReady': (event) => {
+                                event.target.playVideo();
+                                trackVideoDuration(event.target, video.id);
+                            },
+                            'onStateChange': (event) => {
+                                if (event.data === YT.PlayerState.ENDED) {
+                                    checkRestartVideos();
+                                }
+                            }
+                        }
+                    });
+                }, Math.random() * 3000);
+            });
+        }
+
+        function trackVideoDuration(player, videoId) {
+            setTimeout(() => {
+                const duration = player.getDuration();
+                videoEndTimes[videoId] = duration;
+                if (duration < minDuration) {
+                    minDuration = duration;
+                }
+
+                startCountdown(videoId, duration);
+            }, 3000);
+        }
+
+        function startCountdown(videoId, duration) {
+            let timeLeft = duration;
+            const countdownElement = document.getElementById(`countdown_${videoId}`);
+
+            countdownTimers[videoId] = setInterval(() => {
+                countdownElement.innerText = `⌛ ${timeLeft} ثانية`;
+                timeLeft--;
+
+                if (timeLeft < 0) {
+                    clearInterval(countdownTimers[videoId]);
+                    countdownElement.innerText = "🔄 إعادة التشغيل...";
+                }
+            }, 1000);
+        }
+
+        function checkRestartVideos() {
+            const minTime = Math.min(...Object.values(videoEndTimes));
+
+            setTimeout(() => {
+                restartAllVideos();
+            }, minTime * 1000 + Math.random() * 5000);
+        }
+
+        function restartAllVideos() {
+            shuffleArray(videoList);
+            playAllVideos();
+        }
+    </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 مشغل فيديوهات يوتيوب الاحترافي</h1>
+        <textarea id="videoUrls" placeholder="📌 أدخل عدة روابط فيديوهات يوتيوب، كل رابط في سطر جديد"></textarea>
+        <button onclick="addVideos()">➕ إضافة الفيديوهات</button>
+        <button onclick="playAllVideos()">▶️ تشغيل جميع الفيديوهات</button>
+        <h3>📋 قائمة الفيديوهات:</h3>
+        <ul id="videoList"></ul>
+        <h3>📺 المشغلات:</h3>
+        <div id="videoContainer" class="video-grid"></div>
+    </div>
+</body>
+</html>
