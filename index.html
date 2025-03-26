@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل فيديوهات يوتيوب الاحترافي</title>
+    <title>مشغل فيديوهات يوتيوب الذكي</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; direction: rtl; background-color: #f4f4f4; margin: 0; padding: 0; }
         .container { max-width: 700px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px gray; margin-top: 20px; }
@@ -23,7 +23,6 @@
     <script>
         let videoList = [];
         let players = {};
-        let minWatchTime = 99999;
 
         function extractVideoId(url) {
             const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
@@ -68,53 +67,58 @@
             const videoContainer = document.getElementById("videoContainer");
             videoContainer.innerHTML = ""; 
             players = {};
-            minWatchTime = 99999;
 
-            videoList.forEach(videoId => {
-                const videoBox = document.createElement("div");
-                videoBox.className = "video-box";
-
-                const iframe = document.createElement("iframe");
-                iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1`;
-                iframe.frameBorder = "0";
-                iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-                iframe.allowFullscreen = true;
-                iframe.setAttribute("data-video-id", videoId);
-
-                const countdown = document.createElement("div");
-                countdown.className = "countdown";
-                countdown.innerText = "⌛ جاري التحميل...";
-
-                videoBox.appendChild(iframe);
-                videoBox.appendChild(countdown);
-                videoContainer.appendChild(videoBox);
-
-                let randomWatchTime = Math.floor(Math.random() * (90 - 30 + 1)) + 30;
-                if (randomWatchTime < minWatchTime) {
-                    minWatchTime = randomWatchTime;
-                }
-
+            videoList.forEach((videoId, index) => {
                 setTimeout(() => {
-                    restartVideo(iframe, countdown);
-                }, randomWatchTime * 1000);
+                    const videoBox = document.createElement("div");
+                    videoBox.className = "video-box";
+
+                    const iframe = document.createElement("iframe");
+                    iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1`;
+                    iframe.frameBorder = "0";
+                    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                    iframe.allowFullscreen = true;
+                    iframe.setAttribute("data-video-id", videoId);
+
+                    const countdown = document.createElement("div");
+                    countdown.className = "countdown";
+                    countdown.innerText = "⌛ جاري التحميل...";
+
+                    videoBox.appendChild(iframe);
+                    videoBox.appendChild(countdown);
+                    videoContainer.appendChild(videoBox);
+
+                    let randomWatchTime = Math.floor(Math.random() * (90 - 30 + 1)) + 30;
+
+                    setTimeout(() => {
+                        changeVideoSettings(iframe, countdown);
+                        restartVideo(iframe, countdown);
+                    }, randomWatchTime * 1000);
+                }, index * 2000); // تأخير تشغيل كل فيديو بشكل عشوائي
             });
 
             setTimeout(() => {
                 playAllVideos();
-            }, minWatchTime * 1000);
+            }, Math.max(...videoList.map(() => Math.floor(Math.random() * (90 - 30 + 1)) + 30)) * 1000);
+        }
+
+        function changeVideoSettings(iframe, countdown) {
+            let qualities = ["small", "medium", "large", "hd720"];
+            let randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
+            countdown.innerText = `📺 تغيير الجودة إلى: ${randomQuality}`;
         }
 
         function restartVideo(iframe, countdown) {
             const videoId = iframe.getAttribute("data-video-id");
-            iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1`;
-
+            let randomSeek = Math.floor(Math.random() * 10); // تقديم الفيديو بمدة عشوائية
+            iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&mute=1&start=${randomSeek}`;
             countdown.innerText = "🔄 إعادة التشغيل...";
         }
     </script>
 </head>
 <body>
     <div class="container">
-        <h1>🎥 مشغل فيديوهات يوتيوب الاحترافي</h1>
+        <h1>🎥 مشغل فيديوهات يوتيوب الذكي</h1>
         <textarea id="videoUrls" placeholder="📌 أدخل عدة روابط فيديوهات يوتيوب، كل رابط في سطر جديد"></textarea>
         <button onclick="addVideos()">➕ إضافة الفيديوهات</button>
         <button onclick="playAllVideos()">▶️ تشغيل جميع الفيديوهات</button>
